@@ -34,17 +34,42 @@ const updateQuality = (item: Item): Item => {
     return item;
   }
 
-  if (hasExpired(item)) {
-    return {
-      ...item,
-      quality: Math.max(MIN_QUALITY, item.quality - 2),
-    };
-  }
+  const depreciationfactor = calculateDepreciationFactor(item);
 
   return {
     ...item,
-    quality: Math.max(MIN_QUALITY, item.quality - 1),
+    quality: Math.max(
+      MIN_QUALITY,
+      Math.min(MAX_QUALITY, item.quality - depreciationfactor),
+    ),
   };
+};
+
+const calculateDepreciationFactor = (item: Item): number => {
+  let depreciationFactor = 1;
+
+  if (isBackstagePass(item)) {
+    if (item.sellIn > 10) {
+      depreciationFactor = -1; // negative factors increase quality
+    } else if (item.sellIn > 5) {
+      depreciationFactor = -2;
+    } else if (item.sellIn >= 0) {
+      depreciationFactor = -3;
+    } else {
+      depreciationFactor = item.quality; // drop to 0 after the event
+    }
+    return depreciationFactor;
+  }
+
+  if (isWellAgingItem(item)) {
+    depreciationFactor = -1; // negative factors increase quality
+  }
+
+  if (hasExpired(item)) {
+    depreciationFactor = depreciationFactor * 2;
+  }
+
+  return depreciationFactor;
 };
 
 export class GildedTros {
