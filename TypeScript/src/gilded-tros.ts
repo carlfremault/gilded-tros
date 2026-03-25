@@ -1,27 +1,31 @@
 import { Item } from "./item";
 
-// QUALITY
+// Constants - QUALITY
 const MAX_QUALITY = 50;
 const MIN_QUALITY = 0;
 const LEGENDARY_QUALITY = 80;
 
-// ITEMS
+// Constants - ITEMS
 const LEGENDARY_ITEMS = ["B-DAWG Keychain"];
 const WELL_AGING_ITEMS = ["Good Wine"];
 const BACKSTAGE_PASSES = [
   "Backstage passes for Re:Factor",
   "Backstage passes for HAXX",
 ];
+const SMELLY_ITEMS = ["Duplicate Code", "Long Methods", "Ugly Variable Names"];
 
+// Checks
 const isLegendaryItem = (item: Item): boolean =>
   LEGENDARY_ITEMS.includes(item.name);
 const isWellAgingItem = (item: Item): boolean =>
   WELL_AGING_ITEMS.includes(item.name);
 const isBackstagePass = (item: Item): boolean =>
   BACKSTAGE_PASSES.includes(item.name);
+const isSmellyItem = (item: Item): boolean => SMELLY_ITEMS.includes(item.name);
 
 const hasExpired = (item: Item): boolean => item.sellIn < 0;
 
+// Helper functions
 const decreaseSellIn = (item: Item): Item => {
   if (isLegendaryItem(item)) {
     return item;
@@ -63,6 +67,10 @@ const calculateDepreciationFactor = (item: Item): number => {
 
   if (isWellAgingItem(item)) {
     depreciationFactor = -1; // negative factors increase quality
+  }
+
+  if (isSmellyItem(item)) {
+    depreciationFactor = depreciationFactor * 2; // smelly items degrade twice as fast
   }
 
   if (hasExpired(item)) {
