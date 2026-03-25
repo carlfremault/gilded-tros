@@ -3,6 +3,7 @@
 | Regular item        | -1     | -1                      |
 | Regular item D-0    | -1     | -2                      |
 | Good Wine           | -1     | +1                      |
+| Good Wine D-0       | -1     | +2                      |
 | B-DAWG Keychain     | N/A    | === 80                  |
 | Backstage pass      | -1     | +1                      |
 | Backstage pass D-10 | -1     | +2                      |
