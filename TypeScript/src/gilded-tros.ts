@@ -1,5 +1,25 @@
 import { Item } from "./item";
 
+enum ItemCategory {
+  Regular,
+  WellAging,
+  BackstagePass,
+  Legendary,
+  Smelly,
+}
+
+interface CategorizedItem extends Item {
+  category: ItemCategory;
+}
+
+const itemCategoryDepreciationFactors: Record<ItemCategory, number> = {
+  [ItemCategory.Regular]: 1,
+  [ItemCategory.WellAging]: -1, // quality increases over time
+  [ItemCategory.BackstagePass]: 0, // handled separately due to complex rules
+  [ItemCategory.Legendary]: 0, // does not degrade
+  [ItemCategory.Smelly]: 2, // degrades twice as fast
+};
+
 // Constants - QUALITY
 const MAX_QUALITY = 50;
 const MIN_QUALITY = 0;
@@ -26,69 +46,75 @@ const isSmellyItem = (item: Item): boolean => SMELLY_ITEMS.includes(item.name);
 const hasExpired = (item: Item): boolean => item.sellIn < 0;
 
 // Helper functions
-const decreaseSellIn = (item: Item): Item => {
-  if (isLegendaryItem(item)) {
+const decreaseSellIn = (item: CategorizedItem): CategorizedItem => {
+  if (item.category === ItemCategory.Legendary) {
     return item;
   }
   return { ...item, sellIn: item.sellIn - 1 };
 };
 
-const updateQuality = (item: Item): Item => {
-  if (isLegendaryItem(item)) {
-    return item;
-  }
-
-  const depreciationfactor = calculateDepreciationFactor(item);
-
+const updateItemQuality = (item: CategorizedItem): CategorizedItem => {
   return {
     ...item,
-    quality: Math.max(
-      MIN_QUALITY,
-      Math.min(MAX_QUALITY, item.quality - depreciationfactor),
-    ),
+    quality: calculateUpdatedQuality(item),
   };
 };
 
-const calculateDepreciationFactor = (item: Item): number => {
-  let depreciationFactor = 1;
-
-  if (isBackstagePass(item)) {
-    if (item.sellIn > 10) {
-      depreciationFactor = -1; // negative factors increase quality
-    } else if (item.sellIn > 5) {
-      depreciationFactor = -2;
-    } else if (item.sellIn >= 0) {
-      depreciationFactor = -3;
-    } else {
-      depreciationFactor = item.quality; // drop to 0 after the event
-    }
-    return depreciationFactor;
+const calculateUpdatedQuality = (item: CategorizedItem): number => {
+  if (item.category === ItemCategory.Legendary) {
+    return LEGENDARY_QUALITY;
   }
 
-  if (isWellAgingItem(item)) {
-    depreciationFactor = -1; // negative factors increase quality
+  if (item.category === ItemCategory.BackstagePass) {
+    return calculateBackstagePassQuality(item);
   }
 
-  if (isSmellyItem(item)) {
-    depreciationFactor = depreciationFactor * 2; // smelly items degrade twice as fast
-  }
+  const expirationPenalty = hasExpired(item) ? 2 : 1;
+  const depreciationAmount =
+    (itemCategoryDepreciationFactors[item.category] || 1) * expirationPenalty;
 
-  if (hasExpired(item)) {
-    depreciationFactor = depreciationFactor * 2;
-  }
+  return Math.max(
+    MIN_QUALITY,
+    Math.min(MAX_QUALITY, item.quality - depreciationAmount),
+  );
+};
 
-  return depreciationFactor;
+const calculateBackstagePassQuality = (item: CategorizedItem): number => {
+  if (item.sellIn < 0) {
+    return MIN_QUALITY;
+  } else if (item.sellIn <= 5) {
+    return Math.min(MAX_QUALITY, item.quality + 3);
+  } else if (item.sellIn <= 10) {
+    return Math.min(MAX_QUALITY, item.quality + 2);
+  } else {
+    return Math.min(MAX_QUALITY, item.quality + 1);
+  }
 };
 
 export class GildedTros {
-  constructor(public items: Array<Item>) {}
+  private categorizedItems: CategorizedItem[];
+
+  constructor(public items: Array<Item>) {
+    this.categorizedItems = this.items.map((item) => {
+      let category: ItemCategory = ItemCategory.Regular;
+      if (isLegendaryItem(item)) {
+        category = ItemCategory.Legendary;
+      } else if (isWellAgingItem(item)) {
+        category = ItemCategory.WellAging;
+      } else if (isBackstagePass(item)) {
+        category = ItemCategory.BackstagePass;
+      } else if (isSmellyItem(item)) {
+        category = ItemCategory.Smelly;
+      }
+      return { ...item, category };
+    });
+  }
 
   public updateQuality(): void {
-    for (let i = 0; i < this.items.length; i++) {
-      let item = this.items[i];
-      item = decreaseSellIn(item);
-      item = updateQuality(item);
-      this.items[i] = item;
-    }
+    this.categorizedItems = this.categorizedItems.map((item) => {
+      const updatedItem = decreaseSellIn(item);
+      return updateItemQuality(updatedItem);
+    });
+    this.items = this.categorizedItems.map(({ category, ...item }) => item);
   }
 }
