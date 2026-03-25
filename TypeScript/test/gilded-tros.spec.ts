@@ -109,4 +109,30 @@ describe("GildedTrosTest", () => {
       expect(app.items[0].quality).toEqual(50);
     });
   });
+
+  describe("Smelly items", () => {
+    it("should decrease sellIn by 1 and quality by 2 before sellIn date", () => {
+      const items: Item[] = [new Item("Duplicate Code", 10, 10)];
+      const app: GildedTros = new GildedTros(items);
+      app.updateQuality();
+      expect(app.items[0].sellIn).toEqual(9);
+      expect(app.items[0].quality).toEqual(8);
+    });
+
+    it("should decrease sellIn by 1 and quality by 4 after sellIn date", () => {
+      const items: Item[] = [new Item("Long Methods", 0, 10)];
+      const app: GildedTros = new GildedTros(items);
+      app.updateQuality();
+      expect(app.items[0].sellIn).toEqual(-1);
+      expect(app.items[0].quality).toEqual(6);
+    });
+
+    it("should not degrade quality below 0", () => {
+      const items: Item[] = [new Item("Ugly Variable Names", 0, 3)];
+      const app: GildedTros = new GildedTros(items);
+      app.updateQuality();
+      expect(app.items[0].sellIn).toEqual(-1);
+      expect(app.items[0].quality).toEqual(0);
+    });
+  });
 });
